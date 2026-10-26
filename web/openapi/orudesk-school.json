@@ -1,0 +1,1259 @@
+{
+  "openapi" : "3.1.0",
+  "info" : {
+    "description" : "Open source ERP. Log in with POST /api/v1/auth/login, then send \"Authorization: Bearer <accessToken>\".",
+    "license" : {
+      "identifier" : "AGPL-3.0-only",
+      "name" : "AGPL-3.0-only"
+    },
+    "title" : "Orudesk School API",
+    "version" : "1.1.0-SNAPSHOT"
+  },
+  "externalDocs" : {
+    "description" : "Source code",
+    "url" : "https://github.com/orudesk/orudesk-school"
+  },
+  "servers" : [ {
+    "url" : "http://localhost",
+    "description" : "Generated server url"
+  } ],
+  "security" : [ {
+    "bearer" : [ ]
+  } ],
+  "paths" : {
+    "/api/health" : {
+      "get" : {
+        "operationId" : "health",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "security" : [ ],
+        "summary" : "Is the API up?",
+        "tags" : [ "Health" ]
+      }
+    },
+    "/api/v1/admissions" : {
+      "post" : {
+        "operationId" : "admitStudent",
+        "parameters" : [ {
+          "description" : "The school",
+          "in" : "header",
+          "name" : "X-Org-Unit",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AdmitStudentRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AdmitStudentResponse"
+                }
+              }
+            },
+            "description" : "Admitted"
+          }
+        },
+        "summary" : "Admit a student to the school in X-Org-Unit, with their guardians",
+        "tags" : [ "Admissions" ]
+      }
+    },
+    "/api/v1/audit-entries" : {
+      "get" : {
+        "operationId" : "listAuditEntries",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "subjectId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "query",
+          "name" : "after",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 50
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AuditPage"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "What changed, who changed it and when, newest first; optionally for one user, person or unit",
+        "tags" : [ "Audit" ]
+      }
+    },
+    "/api/v1/auth/login" : {
+      "post" : {
+        "operationId" : "login",
+        "parameters" : [ {
+          "description" : "Send 'cookie' to get and send the refresh token as an HttpOnly cookie instead of in JSON",
+          "in" : "header",
+          "name" : "X-Refresh-Token-Transport",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "cookie" ]
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TokenResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "security" : [ ],
+        "summary" : "Exchange email and password for an access and a refresh token",
+        "tags" : [ "Authentication" ]
+      }
+    },
+    "/api/v1/auth/logout" : {
+      "post" : {
+        "operationId" : "logout",
+        "parameters" : [ {
+          "description" : "Send 'cookie' to get and send the refresh token as an HttpOnly cookie instead of in JSON",
+          "in" : "header",
+          "name" : "X-Refresh-Token-Transport",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "cookie" ]
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RefreshTokenRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "204" : {
+            "description" : "Logged out"
+          }
+        },
+        "security" : [ ],
+        "summary" : "Revoke a refresh token",
+        "tags" : [ "Authentication" ]
+      }
+    },
+    "/api/v1/auth/refresh" : {
+      "post" : {
+        "operationId" : "refreshTokens",
+        "parameters" : [ {
+          "description" : "Send 'cookie' to get and send the refresh token as an HttpOnly cookie instead of in JSON",
+          "in" : "header",
+          "name" : "X-Refresh-Token-Transport",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "cookie" ]
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RefreshTokenRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TokenResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "security" : [ ],
+        "summary" : "Exchange a refresh token for new tokens (the old one stops working)",
+        "tags" : [ "Authentication" ]
+      }
+    },
+    "/api/v1/auth/register" : {
+      "post" : {
+        "operationId" : "registerUser",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RegisterUserRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RegisterUserResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "security" : [ ],
+        "summary" : "Create a login (joins the default tenant)",
+        "tags" : [ "Authentication" ]
+      }
+    },
+    "/api/v1/org-units" : {
+      "get" : {
+        "operationId" : "getOrgTree",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OrgUnitNode"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "The tenant's org units, as a tree",
+        "tags" : [ "Org units" ]
+      },
+      "post" : {
+        "operationId" : "createOrgUnit",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateOrgUnitRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CreateOrgUnitResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "summary" : "Add a school, branch or group below an existing unit",
+        "tags" : [ "Org units" ]
+      }
+    },
+    "/api/v1/org-units/current" : {
+      "get" : {
+        "operationId" : "getCurrentOrgUnit",
+        "parameters" : [ {
+          "description" : "The id of the org unit this request is for",
+          "in" : "header",
+          "name" : "X-Org-Unit",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UnitAccess"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "The unit in the X-Org-Unit header, and your roles there",
+        "tags" : [ "Org units" ]
+      }
+    },
+    "/api/v1/people" : {
+      "get" : {
+        "operationId" : "searchPeople",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "q",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "after",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 20
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonPage"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Find people by part of a name, phone or email, one page at a time",
+        "tags" : [ "People" ]
+      },
+      "post" : {
+        "operationId" : "registerPerson",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RegisterPersonRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RegisterPersonResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "summary" : "Add a person to the registry",
+        "tags" : [ "People" ]
+      }
+    },
+    "/api/v1/people/{personId}" : {
+      "get" : {
+        "operationId" : "getPerson",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "personId",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PersonDetails"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "One person",
+        "tags" : [ "People" ]
+      }
+    },
+    "/api/v1/roles" : {
+      "get" : {
+        "operationId" : "listRoles",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RoleDetails"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Every role that can be granted",
+        "tags" : [ "Roles" ]
+      }
+    },
+    "/api/v1/students" : {
+      "get" : {
+        "operationId" : "listStudents",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "className",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StudentListItem"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Students of every school where you manage admissions",
+        "tags" : [ "Admissions" ]
+      }
+    },
+    "/api/v1/students/{studentId}" : {
+      "get" : {
+        "operationId" : "getStudent",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "studentId",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudentDetails"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "One student, with their guardians",
+        "tags" : [ "Admissions" ]
+      }
+    },
+    "/api/v1/users" : {
+      "get" : {
+        "operationId" : "listUsers",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "q",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "after",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 20
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserPage"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "The tenant's users with their roles, one page at a time",
+        "tags" : [ "Users" ]
+      }
+    },
+    "/api/v1/users/me" : {
+      "get" : {
+        "operationId" : "getMyProfile",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserProfile"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "The logged-in user's profile, roles and grants",
+        "tags" : [ "Users" ]
+      }
+    },
+    "/api/v1/users/{userId}/roles" : {
+      "post" : {
+        "operationId" : "assignRole",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "userId",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AssignRoleRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Give a user a role, for the whole tenant or one org unit",
+        "tags" : [ "Users" ]
+      }
+    },
+    "/api/v1/users/{userId}/roles/{role}" : {
+      "delete" : {
+        "operationId" : "revokeRole",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "userId",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "in" : "path",
+          "name" : "role",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "orgUnitId",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Take a role away from a user, tenant-wide or in one org unit",
+        "tags" : [ "Users" ]
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "AdmitStudentRequest" : {
+        "type" : "object",
+        "properties" : {
+          "admissionNumber" : {
+            "type" : "string",
+            "maxLength" : 30,
+            "minLength" : 0
+          },
+          "className" : {
+            "type" : "string",
+            "maxLength" : 20,
+            "minLength" : 0
+          },
+          "dateOfBirth" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "firstName" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "guardians" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/GuardianRequest"
+            },
+            "maxItems" : 3,
+            "minItems" : 0
+          },
+          "lastName" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "section" : {
+            "type" : [ "string", "null" ],
+            "maxLength" : 5,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "admissionNumber", "className", "dateOfBirth", "firstName", "guardians", "lastName" ]
+      },
+      "AdmitStudentResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "id" ]
+      },
+      "AssignRoleRequest" : {
+        "type" : "object",
+        "properties" : {
+          "orgUnitId" : {
+            "type" : [ "string", "null" ],
+            "format" : "uuid"
+          },
+          "role" : {
+            "type" : "string",
+            "minLength" : 1
+          }
+        },
+        "required" : [ "role" ]
+      },
+      "AuditEntryDetails" : {
+        "type" : "object",
+        "properties" : {
+          "action" : {
+            "type" : "string"
+          },
+          "actorEmail" : {
+            "type" : [ "string", "null" ]
+          },
+          "actorId" : {
+            "type" : [ "string", "null" ],
+            "format" : "uuid"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "occurredAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "requestId" : {
+            "type" : [ "string", "null" ]
+          },
+          "subjectId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "subjectType" : {
+            "type" : "string"
+          },
+          "summary" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "action", "id", "occurredAt", "subjectId", "subjectType", "summary" ]
+      },
+      "AuditPage" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AuditEntryDetails"
+            }
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "items" ]
+      },
+      "CreateOrgUnitRequest" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string",
+            "maxLength" : 50,
+            "minLength" : 0
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "parentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "type" : {
+            "type" : "string",
+            "maxLength" : 50,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "code", "name", "parentId", "type" ]
+      },
+      "CreateOrgUnitResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "id" ]
+      },
+      "Grant" : {
+        "type" : "object",
+        "properties" : {
+          "orgUnitId" : {
+            "type" : [ "string", "null" ],
+            "format" : "uuid"
+          },
+          "role" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "role" ]
+      },
+      "GuardianDetails" : {
+        "type" : "object",
+        "properties" : {
+          "firstName" : {
+            "type" : "string"
+          },
+          "lastName" : {
+            "type" : "string"
+          },
+          "personId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "phone" : {
+            "type" : [ "string", "null" ]
+          },
+          "primary" : {
+            "type" : "boolean"
+          },
+          "relationship" : {
+            "type" : "string",
+            "enum" : [ "MOTHER", "FATHER", "GRANDPARENT", "SIBLING", "GUARDIAN", "OTHER" ]
+          }
+        },
+        "required" : [ "firstName", "lastName", "personId", "primary", "relationship" ]
+      },
+      "GuardianRequest" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : [ "string", "null" ],
+            "format" : "email",
+            "maxLength" : 320,
+            "minLength" : 0
+          },
+          "existingPersonId" : {
+            "type" : [ "string", "null" ],
+            "format" : "uuid"
+          },
+          "firstName" : {
+            "type" : [ "string", "null" ],
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "lastName" : {
+            "type" : [ "string", "null" ],
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "phone" : {
+            "type" : [ "string", "null" ],
+            "maxLength" : 30,
+            "minLength" : 0
+          },
+          "primary" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "relationship" : {
+            "type" : "string",
+            "enum" : [ "MOTHER", "FATHER", "GRANDPARENT", "SIBLING", "GUARDIAN", "OTHER" ]
+          }
+        },
+        "required" : [ "relationship" ]
+      },
+      "LoginRequest" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "format" : "email",
+            "minLength" : 1
+          },
+          "password" : {
+            "type" : "string",
+            "minLength" : 1
+          }
+        },
+        "required" : [ "email", "password" ]
+      },
+      "OrgUnitNode" : {
+        "type" : "object",
+        "properties" : {
+          "children" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/OrgUnitNode"
+            }
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "children", "code", "id", "name", "type" ]
+      },
+      "PersonDetails" : {
+        "type" : "object",
+        "properties" : {
+          "dateOfBirth" : {
+            "type" : [ "string", "null" ],
+            "format" : "date"
+          },
+          "email" : {
+            "type" : [ "string", "null" ]
+          },
+          "firstName" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "lastName" : {
+            "type" : "string"
+          },
+          "phone" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "firstName", "id", "lastName" ]
+      },
+      "PersonPage" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PersonDetails"
+            }
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "items" ]
+      },
+      "RefreshTokenRequest" : {
+        "type" : "object",
+        "properties" : {
+          "refreshToken" : {
+            "type" : "string",
+            "minLength" : 1
+          }
+        },
+        "required" : [ "refreshToken" ]
+      },
+      "RegisterPersonRequest" : {
+        "type" : "object",
+        "properties" : {
+          "dateOfBirth" : {
+            "type" : [ "string", "null" ],
+            "format" : "date"
+          },
+          "email" : {
+            "type" : [ "string", "null" ],
+            "format" : "email",
+            "maxLength" : 320,
+            "minLength" : 0
+          },
+          "firstName" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "lastName" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "phone" : {
+            "type" : [ "string", "null" ],
+            "maxLength" : 30,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "firstName", "lastName" ]
+      },
+      "RegisterPersonResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "id" ]
+      },
+      "RegisterUserRequest" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "format" : "email",
+            "maxLength" : 320,
+            "minLength" : 0
+          },
+          "password" : {
+            "type" : "string",
+            "maxLength" : 72,
+            "minLength" : 8
+          }
+        },
+        "required" : [ "email", "password" ]
+      },
+      "RegisterUserResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "id" ]
+      },
+      "RoleDetails" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "code", "name" ]
+      },
+      "StudentDetails" : {
+        "type" : "object",
+        "properties" : {
+          "admissionNumber" : {
+            "type" : "string"
+          },
+          "admittedOn" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "className" : {
+            "type" : "string"
+          },
+          "dateOfBirth" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "firstName" : {
+            "type" : "string"
+          },
+          "guardians" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/GuardianDetails"
+            }
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "lastName" : {
+            "type" : "string"
+          },
+          "personId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "schoolId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "section" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "admissionNumber", "admittedOn", "className", "dateOfBirth", "firstName", "guardians", "id", "lastName", "personId", "schoolId" ]
+      },
+      "StudentListItem" : {
+        "type" : "object",
+        "properties" : {
+          "admissionNumber" : {
+            "type" : "string"
+          },
+          "className" : {
+            "type" : "string"
+          },
+          "firstName" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "lastName" : {
+            "type" : "string"
+          },
+          "schoolId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "section" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "admissionNumber", "className", "firstName", "id", "lastName", "schoolId" ]
+      },
+      "TokenResponse" : {
+        "type" : "object",
+        "properties" : {
+          "accessToken" : {
+            "type" : "string"
+          },
+          "expiresIn" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "refreshToken" : {
+            "type" : [ "string", "null" ]
+          },
+          "tokenType" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "accessToken", "expiresIn", "tokenType" ]
+      },
+      "UnitAccess" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "roles" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "type" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "code", "id", "name", "roles", "type" ]
+      },
+      "UserPage" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/UserSummary"
+            }
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "items" ]
+      },
+      "UserProfile" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string"
+          },
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "grants" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Grant"
+            }
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "roles" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "tenantId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "email", "enabled", "grants", "id", "roles", "tenantId" ]
+      },
+      "UserSummary" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string"
+          },
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "grants" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Grant"
+            }
+          },
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "email", "enabled", "grants", "id" ]
+      }
+    },
+    "securitySchemes" : {
+      "bearer" : {
+        "bearerFormat" : "JWT",
+        "scheme" : "bearer",
+        "type" : "http"
+      }
+    }
+  }
+}

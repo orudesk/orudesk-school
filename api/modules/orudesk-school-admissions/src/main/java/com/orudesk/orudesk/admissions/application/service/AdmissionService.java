@@ -7,6 +7,7 @@ import com.orudesk.orudesk.admissions.application.port.in.GuardianDetails;
 import com.orudesk.orudesk.admissions.application.port.in.GuardianInput;
 import com.orudesk.orudesk.admissions.application.port.in.ListStudentsQuery;
 import com.orudesk.orudesk.admissions.application.port.in.StudentDetails;
+import com.orudesk.orudesk.admissions.application.port.in.StudentAdmitted;
 import com.orudesk.orudesk.admissions.application.port.in.StudentListItem;
 import com.orudesk.orudesk.admissions.application.port.out.LoadStudentPort;
 import com.orudesk.orudesk.admissions.application.port.out.ReadStudentsPort;
@@ -20,6 +21,7 @@ import com.orudesk.orudesk.party.application.port.in.GetPersonQuery;
 import com.orudesk.orudesk.party.application.port.in.PersonDetails;
 import com.orudesk.orudesk.party.application.port.in.RegisterPersonCommand;
 import com.orudesk.orudesk.party.application.port.in.RegisterPersonUseCase;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,10 +41,11 @@ class AdmissionService implements AdmitStudentUseCase, GetStudentQuery, ListStud
     private final ReadStudentsPort readStudentsPort;
     private final SchoolAccess schoolAccess;
     private final Clock clock;
+    private final ApplicationEventPublisher events;
 
     AdmissionService(RegisterPersonUseCase registerPerson, GetPersonQuery getPerson, SaveStudentPort saveStudentPort,
                      LoadStudentPort loadStudentPort, ReadStudentsPort readStudentsPort, SchoolAccess schoolAccess,
-                     Clock clock) {
+                     Clock clock, ApplicationEventPublisher events) {
         this.registerPerson = registerPerson;
         this.getPerson = getPerson;
         this.saveStudentPort = saveStudentPort;
@@ -50,6 +53,7 @@ class AdmissionService implements AdmitStudentUseCase, GetStudentQuery, ListStud
         this.readStudentsPort = readStudentsPort;
         this.schoolAccess = schoolAccess;
         this.clock = clock;
+        this.events = events;
     }
 
     /**
@@ -73,6 +77,8 @@ class AdmissionService implements AdmitStudentUseCase, GetStudentQuery, ListStud
         Student student = Student.admit(child, schoolId, command.admissionNumber(), command.className(),
                 command.section(), guardians, LocalDate.now(clock));
         saveStudentPort.save(student);
+        events.publishEvent(new StudentAdmitted(student.id().value(), command.firstName() + " " + command.lastName(),
+                command.admissionNumber(), command.className()));
         return student.id().value();
     }
 

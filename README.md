@@ -4,9 +4,22 @@
 (login, roles per school, organisation units, the people registry) plus what schools need, starting with
 student admission.
 
-> Status: early. Expect breaking changes before 1.0.
+> Status: release 1 (1.0.0), built on Orudesk core 1.0.0.
 
-## Quick start
+## Quick start: run it
+
+You need only **Docker**, and the core checked out next to this repository (the image is built from both):
+
+```bash
+git clone https://github.com/orudesk/orudesk.git
+git clone https://github.com/orudesk/orudesk-school.git
+cp orudesk/api/.env.example orudesk-school/api/.env       # then set DB_PASSWORD, ORUDESK_JWT_SECRET and the first admin
+docker compose --env-file orudesk-school/api/.env -f orudesk-school/docker/compose.yaml up -d --build --wait
+```
+
+Swagger UI: <http://localhost:8081/swagger-ui.html>. Log in, then try `admitStudent`.
+
+## Quick start: develop it
 
 You need **JDK 25** and **Docker**, and the core checked out next to this repository:
 

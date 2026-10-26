@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -16,6 +17,6 @@ record AdmitStudentRequest(
         @NotNull LocalDate dateOfBirth,
         @NotBlank @Size(max = 30) String admissionNumber,
         @NotBlank @Size(max = 20) String className,
-        @Size(max = 5) String section,
+        @Size(max = 5) @Nullable String section,
         @NotEmpty @Size(max = 3) List<@Valid GuardianRequest> guardians) {   // @Valid: check each guardian too
 }

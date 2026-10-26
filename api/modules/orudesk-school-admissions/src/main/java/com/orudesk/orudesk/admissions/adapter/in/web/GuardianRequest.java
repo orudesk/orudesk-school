@@ -5,18 +5,19 @@ import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 
 /** A guardian in POST /api/v1/admissions: an existing person's id, or a new person's details. */
 record GuardianRequest(
-        UUID existingPersonId,
-        @Size(max = 100) String firstName,
-        @Size(max = 100) String lastName,
-        @Size(max = 30) String phone,
-        @Email @Size(max = 320) String email,
+        @Nullable UUID existingPersonId,
+        @Size(max = 100) @Nullable String firstName,
+        @Size(max = 100) @Nullable String lastName,
+        @Size(max = 30) @Nullable String phone,
+        @Email @Size(max = 320) @Nullable String email,
         @NotNull Relationship relationship,
-        Boolean primary) {
+        @Nullable Boolean primary) {
 
     /** A rule across fields: Bean Validation checks any boolean isXxx() method annotated like this. */
     @AssertTrue(message = "give existingPersonId, or firstName and lastName")

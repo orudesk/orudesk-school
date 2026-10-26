@@ -1,0 +1,11 @@
+// Admissions: students, and the guardians who are responsible for them. Owns the sch_student tables.
+plugins {
+    id 'orudesk-school.java-conventions'
+}
+
+dependencies {
+    implementation 'com.orudesk:orudesk-platform-core'   // ModuleMigrations, tenancy, security
+    implementation 'com.orudesk:orudesk-identity'        // RoleDefinition, OrgUnitAccess, CurrentOrgUnit
+    implementation 'com.orudesk:orudesk-party'           // students and guardians are people in the registry
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+}

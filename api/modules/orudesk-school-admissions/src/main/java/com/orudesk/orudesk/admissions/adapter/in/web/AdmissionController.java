@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -50,6 +51,7 @@ class AdmissionController {
     }
 
     @PostMapping("/admissions")
+    @ApiResponse(responseCode = "201", description = "Admitted", useReturnTypeSchema = true)
     @Operation(operationId = "admitStudent", summary = "Admit a student to the school in X-Org-Unit, with their guardians",
             parameters = @Parameter(name = CurrentOrgUnit.HEADER, in = ParameterIn.HEADER, required = true,
                     description = "The school", schema = @Schema(type = "string", format = "uuid")))

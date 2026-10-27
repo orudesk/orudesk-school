@@ -93,6 +93,17 @@ class AdmissionsIntegrationTest {
     }
 
     @Test
+    void anAdmissionIsInTheAuditLogWithWhoDidIt() throws Exception {
+        String id = admitted(admit(officer, north, "2026/007", motherOnly()));
+
+        mockMvc.perform(get("/api/v1/audit-entries").param("subjectId", id).header("Authorization", "Bearer " + admin))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].action").value("admissions.student.admitted"))
+                .andExpect(jsonPath("$.items[0].summary").value("Admitted Anika Test-Nair to class 5 (no. 2026/007)"))
+                .andExpect(jsonPath("$.items[0].actorEmail").value("test-user-officer@orudesk.org"));
+    }
+
+    @Test
     void aSiblingKeepsTheSameGuardian() throws Exception {
         String first = admitted(admit(officer, north, "2026/001", """
                 [{"firstName": "Lakshmi", "lastName": "Test-Nair", "relationship": "MOTHER", "primary": true}]
@@ -175,7 +186,10 @@ class AdmissionsIntegrationTest {
         admit(officer, north, "2026/001", """
                 [{"relationship": "MOTHER", "primary": true}]
                 """)
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                // The key the web form puts the message under: the guardian's row, the rule's name
+                .andExpect(jsonPath("$.errors['guardians[0].identified']")
+                        .value("give existingPersonId, or firstName and lastName"));
     }
 
     @Test

@@ -1,0 +1,46 @@
+# Runs the tests on every push to main and on every pull request.
+# settings.gradle builds against the core in ../orudesk, so CI checks out both repositories side by side,
+# the same layout as on your machine.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: orudesk-school
+      - uses: actions/checkout@v4
+        with:
+          repository: orudesk/orudesk
+          path: orudesk
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew test
+        working-directory: orudesk-school/api
+
+  # Build the image on every PR (without pushing), from both checkouts, the same way a release does.
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: orudesk-school
+      - uses: actions/checkout@v4
+        with:
+          repository: orudesk/orudesk
+          path: orudesk
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: orudesk-school/api/Dockerfile
+          push: false

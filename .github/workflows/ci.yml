@@ -23,7 +23,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '25'
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
       - run: ./gradlew test
         working-directory: orudesk-school/api
       - name: The web client's copy of the OpenAPI contract is up to date

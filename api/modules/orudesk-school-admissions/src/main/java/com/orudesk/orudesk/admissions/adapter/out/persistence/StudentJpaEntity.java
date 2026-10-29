@@ -8,6 +8,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import org.hibernate.annotations.TenantId;
 
 import java.time.LocalDate;
@@ -45,6 +46,9 @@ class StudentJpaEntity {
     @Column(name = "admitted_on", nullable = false)
     private LocalDate admittedOn;
 
+    @Version   // optimistic locking (Day 49), as in the core's PersonJpaEntity; null until first saved
+    private Long version;
+
     // The links are values that belong to the student, not entities of their own: the same choice as the
     // role grants on Day 19. EAGER: a student is never used without them, and there are at most three.
     @ElementCollection(fetch = FetchType.EAGER)
@@ -67,6 +71,11 @@ class StudentJpaEntity {
         this.guardians = new ArrayList<>(guardians);
     }
 
+    void moveTo(String className, String section) {
+        this.className = className;
+        this.section = section;
+    }
+
     UUID getId() { return id; }
     UUID getPersonId() { return personId; }
     UUID getSchoolId() { return schoolId; }
@@ -75,4 +84,5 @@ class StudentJpaEntity {
     String getSection() { return section; }
     LocalDate getAdmittedOn() { return admittedOn; }
     List<GuardianLinkEmbeddable> getGuardians() { return guardians; }
+    Long getVersion() { return version; }
 }

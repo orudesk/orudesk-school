@@ -18,6 +18,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -101,6 +102,42 @@ class AdmissionsIntegrationTest {
                 .andExpect(jsonPath("$.items[0].action").value("admissions.student.admitted"))
                 .andExpect(jsonPath("$.items[0].summary").value("Admitted Anika Test-Nair to class 5 (no. 2026/007)"))
                 .andExpect(jsonPath("$.items[0].actorEmail").value("test-user-officer@orudesk.org"));
+    }
+
+    @Test
+    void anOfficerMovesAStudentToAnotherSectionAndCorrectsTheName() throws Exception {
+        String id = admitted(admit(officer, north, "2026/011", motherOnly()));
+
+        edit(officer, id, 0, 0, "Anikha", "5", "B")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.firstName").value("Anikha"))
+                .andExpect(jsonPath("$.section").value("B"))
+                .andExpect(jsonPath("$.version").value(1))
+                .andExpect(jsonPath("$.personVersion").value(1));
+
+        mockMvc.perform(get("/api/v1/audit-entries").param("subjectId", id).header("Authorization", "Bearer " + admin))
+                .andExpect(jsonPath("$.items[0].action").value("admissions.student.edited"))
+                .andExpect(jsonPath("$.items[0].summary").value("Changed section of student no. 2026/011"))
+                .andExpect(jsonPath("$.items[0].changes[0].before").value("A"))
+                .andExpect(jsonPath("$.items[0].changes[0].after").value("B"));
+    }
+
+    @Test
+    void aSecondEditOnTheSameVersionIsRefused() throws Exception {
+        String id = admitted(admit(officer, north, "2026/012", motherOnly()));
+        edit(officer, id, 0, 0, "Anika", "6", "A").andExpect(status().isOk());
+
+        edit(admin, id, 0, 0, "Anika", "5", "C")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.currentVersion").value(1));
+    }
+
+    @Test
+    void anOfficerAtSouthCannotEditANorthStudent() throws Exception {
+        String id = admitted(admit(admin, north, "2026/013", motherOnly()));
+        String southOfficer = officerAt(south, "test-user-south@orudesk.org");
+
+        edit(southOfficer, id, 0, 0, "Anika", "5", "B").andExpect(status().isNotFound());
     }
 
     @Test
@@ -198,6 +235,28 @@ class AdmissionsIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body("2026/001", motherOnly())))
                 .andExpect(status().isBadRequest());
+    }
+
+    private ResultActions edit(String token, String id, int version, int personVersion, String firstName,
+                               String className, String section) throws Exception {
+        return mockMvc.perform(put("/api/v1/students/{id}", id).header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"version": %d, "personVersion": %d, "firstName": "%s", "lastName": "Test-Nair",
+                         "dateOfBirth": "2016-06-01", "className": "%s", "section": "%s"}
+                        """.formatted(version, personVersion, firstName, className, section)));
+    }
+
+    private String officerAt(String school, String email) throws Exception {
+        String userId = JsonPath.read(mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\": \"" + email + "\", \"password\": \"user-password\"}"))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(), "$.id");
+        mockMvc.perform(post("/api/v1/users/{id}/roles", userId).header("Authorization", "Bearer " + admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"role\": \"ADMISSIONS_OFFICER\", \"orgUnitId\": \"" + school + "\"}"))
+                .andExpect(status().is2xxSuccessful());
+        return login(email, "user-password");
     }
 
     private static String motherOnly() {

@@ -7,6 +7,7 @@ import com.orudesk.orudesk.admissions.domain.GuardianLink;
 import com.orudesk.orudesk.admissions.domain.Student;
 import com.orudesk.orudesk.admissions.domain.StudentId;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
@@ -37,11 +38,23 @@ class StudentPersistenceAdapter implements SaveStudentPort, LoadStudentPort {
     }
 
     @Override
+    public long update(Student student) {
+        StudentJpaEntity row = students.findById(student.id().value())
+                .orElseThrow(() -> new IllegalStateException("updating a student who isn't there: " + student.id().value()));
+        if (row.getVersion() != student.version()) {
+            throw new ObjectOptimisticLockingFailureException(StudentJpaEntity.class, student.id().value());
+        }
+        row.moveTo(student.className(), student.section());
+        students.flush();   // the UPDATE ... WHERE version = ? runs now, so a lost race throws here
+        return row.getVersion();
+    }
+
+    @Override
     public Optional<Student> findById(StudentId id) {
         return students.findById(id.value()).map(row -> Student.restore(new StudentId(row.getId()),
                 row.getPersonId(), row.getSchoolId(), row.getAdmissionNumber(), row.getClassName(), row.getSection(),
                 row.getAdmittedOn(), row.getGuardians().stream()
                         .map(g -> new GuardianLink(g.getPersonId(), g.getRelationship(), g.isPrimary()))
-                        .toList()));
+                        .toList(), row.getVersion()));
     }
 }

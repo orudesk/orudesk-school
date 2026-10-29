@@ -2,11 +2,14 @@ package com.orudesk.orudesk.admissions.application.service;
 
 import com.orudesk.orudesk.admissions.application.port.in.AdmitStudentCommand;
 import com.orudesk.orudesk.admissions.application.port.in.AdmitStudentUseCase;
+import com.orudesk.orudesk.admissions.application.port.in.EditStudentCommand;
+import com.orudesk.orudesk.admissions.application.port.in.EditStudentUseCase;
 import com.orudesk.orudesk.admissions.application.port.in.GetStudentQuery;
 import com.orudesk.orudesk.admissions.application.port.in.GuardianDetails;
 import com.orudesk.orudesk.admissions.application.port.in.GuardianInput;
 import com.orudesk.orudesk.admissions.application.port.in.ListStudentsQuery;
 import com.orudesk.orudesk.admissions.application.port.in.StudentDetails;
+import com.orudesk.orudesk.admissions.application.port.in.StudentEdited;
 import com.orudesk.orudesk.admissions.application.port.in.StudentAdmitted;
 import com.orudesk.orudesk.admissions.application.port.in.StudentListItem;
 import com.orudesk.orudesk.admissions.application.port.out.LoadStudentPort;
@@ -17,10 +20,15 @@ import com.orudesk.orudesk.admissions.domain.NotAllowedAtSchoolException;
 import com.orudesk.orudesk.admissions.domain.Student;
 import com.orudesk.orudesk.admissions.domain.StudentId;
 import com.orudesk.orudesk.admissions.domain.StudentNotFoundException;
+import com.orudesk.orudesk.party.application.port.in.EditPersonCommand;
+import com.orudesk.orudesk.party.application.port.in.EditPersonUseCase;
 import com.orudesk.orudesk.party.application.port.in.GetPersonQuery;
 import com.orudesk.orudesk.party.application.port.in.PersonDetails;
 import com.orudesk.orudesk.party.application.port.in.RegisterPersonCommand;
 import com.orudesk.orudesk.party.application.port.in.RegisterPersonUseCase;
+import com.orudesk.orudesk.shared.EditConflictException;
+import com.orudesk.orudesk.shared.FieldChange;
+import com.orudesk.orudesk.shared.FieldChanges;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,9 +40,10 @@ import java.util.Set;
 import java.util.UUID;
 
 @Service
-class AdmissionService implements AdmitStudentUseCase, GetStudentQuery, ListStudentsQuery {
+class AdmissionService implements AdmitStudentUseCase, EditStudentUseCase, GetStudentQuery, ListStudentsQuery {
 
     private final RegisterPersonUseCase registerPerson;
+    private final EditPersonUseCase editPerson;
     private final GetPersonQuery getPerson;
     private final SaveStudentPort saveStudentPort;
     private final LoadStudentPort loadStudentPort;
@@ -43,10 +52,12 @@ class AdmissionService implements AdmitStudentUseCase, GetStudentQuery, ListStud
     private final Clock clock;
     private final ApplicationEventPublisher events;
 
-    AdmissionService(RegisterPersonUseCase registerPerson, GetPersonQuery getPerson, SaveStudentPort saveStudentPort,
-                     LoadStudentPort loadStudentPort, ReadStudentsPort readStudentsPort, SchoolAccess schoolAccess,
-                     Clock clock, ApplicationEventPublisher events) {
+    AdmissionService(RegisterPersonUseCase registerPerson, EditPersonUseCase editPerson, GetPersonQuery getPerson,
+                     SaveStudentPort saveStudentPort, LoadStudentPort loadStudentPort,
+                     ReadStudentsPort readStudentsPort, SchoolAccess schoolAccess, Clock clock,
+                     ApplicationEventPublisher events) {
         this.registerPerson = registerPerson;
+        this.editPerson = editPerson;
         this.getPerson = getPerson;
         this.saveStudentPort = saveStudentPort;
         this.loadStudentPort = loadStudentPort;
@@ -91,13 +102,40 @@ class AdmissionService implements AdmitStudentUseCase, GetStudentQuery, ListStud
                 guardian.firstName(), guardian.lastName(), null, guardian.phone(), guardian.email()));
     }
 
+    /**
+     * The child's details in the registry and the class here, in one transaction (as for a patient). The registry
+     * edit is a replace, so the child's phone and email, which this form doesn't show, are sent back as they are.
+     */
+    @Override
+    @Transactional
+    public StudentDetails edit(EditStudentCommand command) {
+        StudentId id = new StudentId(command.studentId());
+        Student current = managed(id);
+        if (current.version() != command.version()) {
+            throw new EditConflictException("student", id.value(), command.version(), current.version());
+        }
+        Student moved = current.moveTo(command.className(), command.section());
+
+        PersonDetails child = getPerson.getPerson(current.personId());
+        editPerson.edit(new EditPersonCommand(child.id(), command.personVersion(), command.firstName(),
+                command.lastName(), command.dateOfBirth(), child.phone(), child.email()));
+
+        List<FieldChange> changes = new FieldChanges()
+                .compare("className", current.className(), moved.className())
+                .compare("section", current.section(), moved.section())
+                .list();
+        if (!changes.isEmpty()) {
+            saveStudentPort.update(moved);
+            events.publishEvent(new StudentEdited(id.value(), current.admissionNumber(), changes));
+        }
+        return getStudent(id.value());
+    }
+
     @Override
     @Transactional(readOnly = true)
     public StudentDetails getStudent(UUID studentId) {
         StudentId id = new StudentId(studentId);
-        Student student = loadStudentPort.findById(id)
-                .filter(found -> schoolAccess.mayManage(found.schoolId()))   // not yours: "not found", not "forbidden"
-                .orElseThrow(() -> new StudentNotFoundException(id));
+        Student student = managed(id);
 
         // One registry lookup per person: fine for a child and two or three guardians. A list would use
         // the view instead (see list()).
@@ -111,7 +149,14 @@ class AdmissionService implements AdmitStudentUseCase, GetStudentQuery, ListStud
                 .toList();
         return new StudentDetails(student.id().value(), student.schoolId(), child.id(), child.firstName(),
                 child.lastName(), child.dateOfBirth(), student.admissionNumber(), student.className(),
-                student.section(), student.admittedOn(), guardians);
+                student.section(), student.admittedOn(), guardians, student.version(), child.version());
+    }
+
+    /** A student at a school the user manages; anyone else's is "not found", not "forbidden". */
+    private Student managed(StudentId id) {
+        return loadStudentPort.findById(id)
+                .filter(found -> schoolAccess.mayManage(found.schoolId()))
+                .orElseThrow(() -> new StudentNotFoundException(id));
     }
 
     @Override

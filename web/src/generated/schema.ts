@@ -185,7 +185,11 @@ export interface paths {
     };
     /** One person */
     get: operations['getPerson'];
-    put?: never;
+    /**
+     * Change a person's details
+     * @description Send the version you read. 409 if the person was changed since: reload and edit again.
+     */
+    put: operations['editPerson'];
     post?: never;
     delete?: never;
     options?: never;
@@ -236,7 +240,11 @@ export interface paths {
     };
     /** One student, with their guardians */
     get: operations['getStudent'];
-    put?: never;
+    /**
+     * Change a student's name, date of birth, class or section
+     * @description Send both versions you read. 409 if the student or the child's details were changed since.
+     */
+    put: operations['editStudent'];
     post?: never;
     delete?: never;
     options?: never;
@@ -272,6 +280,40 @@ export interface paths {
     get: operations['getMyProfile'];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/users/{userId}/disable': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Stop a user from logging in, and end their sessions */
+    post: operations['disableUser'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/users/{userId}/enable': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Let a disabled user log in again */
+    post: operations['enableUser'];
     delete?: never;
     options?: never;
     head?: never;
@@ -340,6 +382,7 @@ export interface components {
       actorEmail?: string | null;
       /** Format: uuid */
       actorId?: string | null;
+      changes: components['schemas']['FieldChange'][];
       /** Format: uuid */
       id: string;
       /** Format: date-time */
@@ -364,6 +407,35 @@ export interface components {
     CreateOrgUnitResponse: {
       /** Format: uuid */
       id: string;
+    };
+    EditPersonRequest: {
+      /** Format: date */
+      dateOfBirth?: string | null;
+      /** Format: email */
+      email?: string | null;
+      firstName: string;
+      lastName: string;
+      phone?: string | null;
+      /** Format: int64 */
+      version: number;
+    };
+    EditStudentRequest: {
+      className: string;
+      /** Format: date */
+      dateOfBirth: string;
+      firstName: string;
+      lastName: string;
+      /** Format: int64 */
+      personVersion: number;
+      section?: string | null;
+      /** Format: int64 */
+      version: number;
+    };
+    FieldChange: {
+      after?: string | null;
+      before?: string | null;
+      field: string;
+      valuesHidden: boolean;
     };
     Grant: {
       /** Format: uuid */
@@ -414,6 +486,8 @@ export interface components {
       id: string;
       lastName: string;
       phone?: string | null;
+      /** Format: int64 */
+      version: number;
     };
     PersonPage: {
       items: components['schemas']['PersonDetails'][];
@@ -463,9 +537,13 @@ export interface components {
       lastName: string;
       /** Format: uuid */
       personId: string;
+      /** Format: int64 */
+      personVersion: number;
       /** Format: uuid */
       schoolId: string;
       section?: string | null;
+      /** Format: int64 */
+      version: number;
     };
     StudentListItem: {
       admissionNumber: string;
@@ -836,6 +914,32 @@ export interface operations {
       };
     };
   };
+  editPerson: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        personId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['EditPersonRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PersonDetails'];
+        };
+      };
+    };
+  };
   listRoles: {
     parameters: {
       query?: never;
@@ -900,6 +1004,32 @@ export interface operations {
       };
     };
   };
+  editStudent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        studentId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['EditStudentRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['StudentDetails'];
+        };
+      };
+    };
+  };
   listUsers: {
     parameters: {
       query?: {
@@ -941,6 +1071,46 @@ export interface operations {
         content: {
           'application/json': components['schemas']['UserProfile'];
         };
+      };
+    };
+  };
+  disableUser: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        userId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  enableUser: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        userId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

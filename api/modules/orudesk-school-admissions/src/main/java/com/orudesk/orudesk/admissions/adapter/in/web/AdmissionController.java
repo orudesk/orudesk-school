@@ -2,6 +2,8 @@ package com.orudesk.orudesk.admissions.adapter.in.web;
 
 import com.orudesk.orudesk.admissions.application.port.in.AdmitStudentCommand;
 import com.orudesk.orudesk.admissions.application.port.in.AdmitStudentUseCase;
+import com.orudesk.orudesk.admissions.application.port.in.EditStudentCommand;
+import com.orudesk.orudesk.admissions.application.port.in.EditStudentUseCase;
 import com.orudesk.orudesk.admissions.application.port.in.GetStudentQuery;
 import com.orudesk.orudesk.admissions.application.port.in.GuardianInput;
 import com.orudesk.orudesk.admissions.application.port.in.ListStudentsQuery;
@@ -19,6 +21,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -38,13 +41,15 @@ import java.util.UUID;
 class AdmissionController {
 
     private final AdmitStudentUseCase admitStudent;
+    private final EditStudentUseCase editStudent;
     private final GetStudentQuery getStudent;
     private final ListStudentsQuery listStudents;
     private final CurrentOrgUnit currentOrgUnit;
 
-    AdmissionController(AdmitStudentUseCase admitStudent, GetStudentQuery getStudent, ListStudentsQuery listStudents,
-                        CurrentOrgUnit currentOrgUnit) {
+    AdmissionController(AdmitStudentUseCase admitStudent, EditStudentUseCase editStudent, GetStudentQuery getStudent,
+                        ListStudentsQuery listStudents, CurrentOrgUnit currentOrgUnit) {
         this.admitStudent = admitStudent;
+        this.editStudent = editStudent;
         this.getStudent = getStudent;
         this.listStudents = listStudents;
         this.currentOrgUnit = currentOrgUnit;
@@ -76,5 +81,13 @@ class AdmissionController {
     @Operation(operationId = "getStudent", summary = "One student, with their guardians")
     StudentDetails get(@PathVariable UUID studentId) {
         return getStudent.getStudent(studentId);
+    }
+
+    @PutMapping("/students/{studentId}")
+    @Operation(operationId = "editStudent", summary = "Change a student's name, date of birth, class or section",
+            description = "Send both versions you read. 409 if the student or the child's details were changed since.")
+    StudentDetails edit(@PathVariable UUID studentId, @Valid @RequestBody EditStudentRequest request) {
+        return editStudent.edit(new EditStudentCommand(studentId, request.version(), request.personVersion(),
+                request.firstName(), request.lastName(), request.dateOfBirth(), request.className(), request.section()));
     }
 }

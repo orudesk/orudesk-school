@@ -72,6 +72,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/auth/login/two-factor': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Finish a login with a code from the authenticator app, or a recovery code */
+    post: operations['loginSecondFactor'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/auth/logout': {
     parameters: {
       query?: never;
@@ -314,6 +331,23 @@ export interface paths {
     get: operations['getMyProfile'];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/users/me/password': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Change the password; every other session is signed out */
+    post: operations['changeMyPassword'];
     delete?: never;
     options?: never;
     head?: never;
@@ -578,6 +612,10 @@ export interface components {
       items: components['schemas']['AuditEntryDetails'][];
       nextCursor?: string | null;
     };
+    ChangePasswordRequest: {
+      newPassword: string;
+      password: string;
+    };
     CodeRequest: {
       code: string;
     };
@@ -720,6 +758,10 @@ export interface components {
       code: string;
       description?: string | null;
       name: string;
+    };
+    SecondFactorRequest: {
+      code: string;
+      loginToken: string;
     };
     StudentDetails: {
       admissionNumber: string;
@@ -900,8 +942,35 @@ export interface operations {
       };
     };
     responses: {
-      /** @description OK */
-      200: {
+      /** @description 'Login failed', or 'Second factor required' with a loginToken for POST /api/v1/auth/login/two-factor */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TokenResponse'];
+        };
+      };
+    };
+  };
+  loginSecondFactor: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description Send 'cookie' to get and send the refresh token as an HttpOnly cookie instead of in JSON */
+        'X-Refresh-Token-Transport'?: 'cookie';
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SecondFactorRequest'];
+      };
+    };
+    responses: {
+      /** @description 'Login expired': start again with the password */
+      401: {
         headers: {
           [name: string]: unknown;
         };
@@ -1325,6 +1394,28 @@ export interface operations {
         content: {
           'application/json': components['schemas']['UserProfile'];
         };
+      };
+    };
+  };
+  changeMyPassword: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ChangePasswordRequest'];
+      };
+    };
+    responses: {
+      /** @description Changed */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

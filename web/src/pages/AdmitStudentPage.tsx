@@ -11,17 +11,17 @@ import {
   TextInput,
   Title,
 } from '@mantine/core';
-import { useCurrentUnit, useCurrentUnitAccess, usePageTitle } from '@orudesk/web-core';
+import {
+  useCurrentUnit,
+  useCurrentUnitAccess,
+  usePageTitle,
+  ValidationError,
+} from '@orudesk/web-core';
 import { IconPlus } from '@tabler/icons-react';
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import type { SchoolSchemas } from '../api';
-import {
-  AdmissionValidationError,
-  RELATIONSHIPS,
-  useAdmitStudent,
-  type Relationship,
-} from '../admissions';
+import { RELATIONSHIPS, useAdmitStudent, type Relationship } from '../admissions';
 
 const MAX_GUARDIANS = 3; // as the API allows
 const DEFAULT_RELATIONSHIPS: Relationship[] = ['MOTHER', 'FATHER', 'GUARDIAN'];
@@ -63,7 +63,7 @@ function AdmissionForm({ schoolId, schoolName }: { schoolId: string; schoolName:
   // Each guardian card has a stable key, so removing the second doesn't move the third's typing into it
   const [guardians, setGuardians] = useState<number[]>([0]);
   const [nextKey, setNextKey] = useState(1);
-  const errors = admit.error instanceof AdmissionValidationError ? admit.error.fields : {};
+  const errors = admit.error instanceof ValidationError ? admit.error.fields : {};
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -103,7 +103,7 @@ function AdmissionForm({ schoolId, schoolName }: { schoolId: string; schoolName:
         <Text>
           At <strong>{schoolName}</strong>
         </Text>
-        {admit.isError && !(admit.error instanceof AdmissionValidationError) && (
+        {admit.isError && !(admit.error instanceof ValidationError) && (
           <Alert color="red" role="alert" title="Not admitted">
             {admit.error.message}
           </Alert>

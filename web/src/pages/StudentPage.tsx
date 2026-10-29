@@ -64,6 +64,9 @@ export function StudentPage() {
             ))}
           </SimpleGrid>
           <Group gap="lg">
+            <Anchor component={Link} to={`/students/${student.data.id}/edit`} size="sm">
+              Edit details
+            </Anchor>
             <Anchor component={Link} to={`/people/${student.data.personId}`} size="sm">
               Their entry in the People registry
             </Anchor>

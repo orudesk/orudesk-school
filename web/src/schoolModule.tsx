@@ -19,6 +19,10 @@ export const schoolModule: OrudeskModule = {
       }),
     },
     {
+      path: '/students/:studentId/edit',
+      lazy: async () => ({ Component: (await import('./pages/EditStudentPage')).EditStudentPage }),
+    },
+    {
       path: '/students/:studentId',
       lazy: async () => ({ Component: (await import('./pages/StudentPage')).StudentPage }),
     },

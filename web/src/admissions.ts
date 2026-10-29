@@ -1,4 +1,4 @@
-import { problemMessage } from '@orudesk/web-core';
+import { saveError } from '@orudesk/web-core';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSchoolApi, type SchoolSchemas } from './api';
 
@@ -55,19 +55,6 @@ export function useStudent(studentId: string) {
 }
 
 /**
- * The API refused the form. `fields` is keyed as the API names them: "admissionNumber", and for a guardian
- * "guardians[1].firstName" or "guardians[1].identified" (no name given).
- */
-export class AdmissionValidationError extends Error {
-  constructor(
-    message: string,
-    readonly fields: Record<string, string>,
-  ) {
-    super(message);
-  }
-}
-
-/**
  * Admit at `schoolId`, sent as X-Org-Unit explicitly: the school is part of what the user confirmed on the form,
  * so switching units in another tab mustn't change where the child is admitted.
  */
@@ -81,14 +68,9 @@ export function useAdmitStudent(schoolId: string) {
         body: admission,
       });
       if (data) return data.id;
-      if (response.status === 400) {
-        const fields = (error as { errors?: Record<string, string> } | undefined)?.errors ?? {};
-        throw new AdmissionValidationError(
-          problemMessage(error, 'Some fields are invalid.'),
-          fields,
-        );
-      }
-      throw new Error(problemMessage(error, 'The student was not admitted.'));
+      // A ValidationError's fields are keyed as the API names them: "admissionNumber", and for a guardian
+      // "guardians[1].firstName" or "guardians[1].identified" (no name given)
+      throw saveError(response, error, 'The student was not admitted.');
     },
     // The child and new guardians are people in the core's registry too
     onSuccess: () =>
@@ -96,5 +78,32 @@ export function useAdmitStudent(schoolId: string) {
         queryClient.invalidateQueries({ queryKey: ['students'] }),
         queryClient.invalidateQueries({ queryKey: ['people'] }),
       ]),
+  });
+}
+
+/**
+ * Saves a student's corrections (PUT, Day 49): the name and date of birth (the person's) and the class and
+ * section (the school's), with both versions read. The core's EditConflictError if either was saved in between.
+ */
+export function useEditStudent(studentId: string) {
+  const api = useSchoolApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (student: SchoolSchemas['EditStudentRequest']) => {
+      const { data, error, response } = await api.PUT('/api/v1/students/{studentId}', {
+        params: { path: { studentId } },
+        body: student,
+      });
+      if (data) return data;
+      throw saveError(response, error, 'The changes were not saved.');
+    },
+    onSuccess: (student) => {
+      queryClient.setQueryData(['students', 'one', studentId], student);
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['students', 'list'] }),
+        queryClient.invalidateQueries({ queryKey: ['people'] }),
+        queryClient.invalidateQueries({ queryKey: ['audit'] }),
+      ]);
+    },
   });
 }

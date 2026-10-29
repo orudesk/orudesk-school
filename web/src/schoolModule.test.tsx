@@ -167,4 +167,56 @@ describe('the school edition', () => {
       ],
     });
   });
+
+  describe('editing a student', () => {
+    const details = {
+      ...anika,
+      personId: 'p-child',
+      dateOfBirth: '2016-06-01',
+      admittedOn: '2026-10-26',
+      guardians: [],
+      version: 1,
+      personVersion: 4,
+    };
+
+    it('moves a student to another section, sending both versions', async () => {
+      const api = openAt('/students/s1/edit', {
+        'GET /api/v1/students/s1': () => json(details),
+        'PUT /api/v1/students/s1': () => json({ ...details, section: 'B', version: 2 }),
+      });
+
+      const section = await screen.findByLabelText('Section');
+      await userEvent.clear(section);
+      await userEvent.type(section, 'B');
+      await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+      expect(await screen.findByText('5 B')).toBeInTheDocument();
+      expect(window.location.pathname).toBe('/students/s1');
+      const sent = api.requests.find((r) => r.method === 'PUT')!;
+      expect(await sent.json()).toEqual({
+        version: 1,
+        personVersion: 4,
+        firstName: 'Anika',
+        lastName: 'Nair',
+        dateOfBirth: '2016-06-01',
+        className: '5',
+        section: 'B',
+      });
+    });
+
+    it('offers a reload when someone else saved the student first', async () => {
+      openAt('/students/s1/edit', {
+        'GET /api/v1/students/s1': () => json(details),
+        'PUT /api/v1/students/s1': () =>
+          json(
+            { title: 'Edit conflict', detail: 'student s1 was changed', currentVersion: 2 },
+            409,
+          ),
+      });
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Save' }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('Changed by someone else');
+    });
+  });
 });
